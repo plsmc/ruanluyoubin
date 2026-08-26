@@ -54,11 +54,9 @@ jobs:
             [ -d "$dir" ] || continue
             find "$dir" -type f \( \
               -name '*-factory.bin' -o -name '*-sysupgrade.bin' -o \
-              -name '*_nowifi.bin' -o -name '*.manifest' -o -name '*.itb' -o \
-              -name '*.fip' -o -name '*.ubi' -o -name '*rootfs.tar.gz' \
+              -name '*_nowifi.bin' -o -name '*.manifest' \
             \) -exec cp -f {} artifacts/ \;
           done
-          cp action_build/.config artifacts/build.config 2>/dev/null || true
           find artifacts -maxdepth 1 -type f -print | sort
 
       - name: Upload firmware artifact
