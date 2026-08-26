@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload firmware artifact
         if: always() && hashFiles('artifacts/**') != ''
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: nn6000v2-firmware-${{ inputs.config }}-${{ github.run_number }}
           path: artifacts
