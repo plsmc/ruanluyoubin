@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# Keep ath11k's NSS driver support, but disable packet forwarding acceleration.
+uci -q set firewall.@defaults[0].flow_offloading='0'
+uci -q set firewall.@defaults[0].flow_offloading_hw='0'
+uci -q commit firewall
+
+for path in \
+	/proc/sys/dev/nss/general/redirect \
+	/proc/sys/dev/nss/general/redirect_ipv6; do
+	[ -w "$path" ] && echo 0 > "$path"
+done
+
+exit 0

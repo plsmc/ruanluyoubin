@@ -23,8 +23,9 @@ fix_default_set() {
     install -Dm544 "$BASE_PATH/patches/990_set_argon_primary" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/990_set_argon_primary"
     install -Dm544 "$BASE_PATH/patches/991_custom_settings" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/991_custom_settings"
     install -Dm544 "$BASE_PATH/patches/992_network_config.sh" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/992_network_config.sh"
-	install -Dm544 "$BASE_PATH/patches/993_expand_data_partition.sh" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/993_expand_data_partition.sh"
+    install -Dm544 "$BASE_PATH/patches/993_expand_data_partition.sh" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/993_expand_data_partition.sh"
     install -Dm544 "$BASE_PATH/patches/994_set_opkg_repos" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/994_set_opkg_repos"
+	install -Dm544 "$BASE_PATH/patches/995_disable_nss_offload" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/995_disable_nss_offload"
 	install -Dm755 "$BASE_PATH/patches/mount-data" "$BUILD_DIR/package/base-files/files/etc/init.d/mount-data"
     
     if [ -f "$BUILD_DIR/package/emortal/autocore/files/tempinfo" ]; then
