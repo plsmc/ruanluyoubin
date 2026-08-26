@@ -16,12 +16,11 @@ start_service() {
 	config_get server main server ''
 	config_get client_ip main client_ip ''
 	config_get state_listen main state_listen ':9011'
-	[ -n "$server" ] || return 0
 
 	procd_open_instance
 	procd_set_param command /usr/bin/radar-raw1-sender \
-		--interface "$iface" --server "$server" \
-		--state-listen "$state_listen" --start
+		--interface "$iface" --state-listen "$state_listen"
+	[ -n "$server" ] && procd_append_param command --server "$server" --start
 	[ -n "$client_ip" ] && procd_append_param command --client-ip "$client_ip"
 	procd_set_param respawn 3600 5 5
 	procd_set_param stdout 1

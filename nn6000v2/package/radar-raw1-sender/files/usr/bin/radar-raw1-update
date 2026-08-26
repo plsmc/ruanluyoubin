@@ -12,9 +12,26 @@ MANIFEST_URL="$BASE_URL/latest.json"
 TMP_DIR="/tmp/radar-update"
 BIN="/usr/bin/radar-raw1-sender"
 LOCK="/var/run/radar-raw1-update.lock"
+STATUS_FILE="/tmp/radar-raw1-update.status"
+TOTAL_FILE="/tmp/radar-raw1-update.total"
+
+write_status() {
+	status_tmp="$STATUS_FILE.tmp.$$"
+	printf '%s\n%s\n%s\n' "$1" "$2" "$3" > "$status_tmp"
+	mv -f "$status_tmp" "$STATUS_FILE"
+}
+
+cleanup() {
+	rc=$?
+	rm -rf "$TMP_DIR" "$LOCK"
+	if [ "$rc" -ne 0 ]; then
+		write_status failed 0 "更新失败"
+	fi
+}
 
 mkdir "$LOCK" 2>/dev/null || { echo "update already running"; exit 1; }
-trap 'rm -rf "$TMP_DIR" "$LOCK"' EXIT
+trap cleanup EXIT
+rm -f "$STATUS_FILE" "$TOTAL_FILE"
 mkdir -p "$TMP_DIR"
 
 fetch() {
@@ -22,6 +39,7 @@ fetch() {
 	wget -q -O "$2" "$1"
 }
 
+write_status checking 5 "正在读取更新清单"
 fetch "$MANIFEST_URL" "$TMP_DIR/latest.json"
 version=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$TMP_DIR/latest.json" | head -n 1)
 url=$(sed -n 's/.*"url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$TMP_DIR/latest.json" | head -n 1)
@@ -32,18 +50,30 @@ case "$url" in
 	http://*|https://*) bin_url="$url" ;;
 	*) bin_url="$BASE_URL/$url" ;;
 esac
+
+total=$(wget -S --spider "$bin_url" 2>&1 | sed -n 's/^[[:space:]]*[Cc]ontent-[Ll]ength:[[:space:]]*\([0-9][0-9]*\).*/\1/p' | tail -n 1 || true)
+printf '%s\n' "${total:-0}" > "$TOTAL_FILE"
+write_status downloading 15 "正在下载程序"
 fetch "$bin_url" "$TMP_DIR/radar-raw1-sender.new"
+write_status verifying 90 "正在校验程序"
 printf '%s  %s\n' "$sha" "$TMP_DIR/radar-raw1-sender.new" | sha256sum -c - >/dev/null
 chmod 0755 "$TMP_DIR/radar-raw1-sender.new"
 
 current=$(cat /etc/radar-raw1-sender.version 2>/dev/null || true)
 if [ "$current" = "$version" ]; then
+	# Keep the service running even when the downloaded version is unchanged.
+	write_status restarting 96 "程序已是最新，正在重启服务"
+	/etc/init.d/radar-raw1-sender restart >/dev/null 2>&1 || true
+	write_status done 100 "已是最新版本：$version"
 	echo "already up to date: $version"
 	exit 0
 fi
 
+write_status installing 94 "正在安装版本 $version"
 cp -f "$BIN" "$BIN.bak" 2>/dev/null || true
 mv -f "$TMP_DIR/radar-raw1-sender.new" "$BIN"
 printf '%s\n' "$version" > /etc/radar-raw1-sender.version
+write_status restarting 98 "正在重启服务"
 /etc/init.d/radar-raw1-sender restart >/dev/null 2>&1 || true
+write_status done 100 "更新完成：$version"
 echo "updated to $version"
