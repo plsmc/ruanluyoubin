@@ -1,0 +1,8 @@
+#!/bin/sh
+# Keep the CPU-visible netdev path intact for AF_PACKET capture. NSS drivers
+# remain installed, but flow offload is disabled until a mirrored capture path
+# is configured explicitly.
+uci -q set firewall.@defaults[0].flow_offloading='0'
+uci -q set firewall.@defaults[0].flow_offloading_hw='0'
+uci -q commit firewall
+exit 0

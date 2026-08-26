@@ -1,0 +1,66 @@
+name: Build NN6000V2 firmware
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: 'Firmware config name without .config'
+        required: true
+        default: link_nn6000v2_immwrt
+      build_mode:
+        description: 'Build mode'
+        required: true
+        type: choice
+        options:
+          - release
+          - debug
+        default: release
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential clang flex bison gawk gettext \
+            libncurses-dev libssl-dev python3 python3-distutils \
+            rsync unzip wget file time ca-certificates xsltproc zstd \
+            ccache git
+
+      - name: Configure git and build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_UNSAFE_CONFIGURE: '1'
+        run: |
+          git config --global advice.detachedHead false
+          git config --global protocol.version 2
+          nn6000v2/scripts/build.sh "${{ inputs.config }}" "${{ inputs.build_mode == 'debug' && 'debug' || '' }}"
+
+      - name: Collect firmware and logs
+        if: always()
+        run: |
+          mkdir -p artifacts
+          find . -type f \( \
+            -name '*.bin' -o -name '*.manifest' -o -name '*.itb' -o \
+            -name '*.fip' -o -name '*.ubi' -o -name '*rootfs.tar.gz' \
+          \) -exec cp -f {} artifacts/ \; || true
+          cp imm-nss/.config artifacts/build.config 2>/dev/null || true
+
+      - name: Upload firmware artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nn6000v2-firmware-${{ inputs.config }}-${{ github.run_number }}
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 14

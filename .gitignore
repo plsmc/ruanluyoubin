@@ -1,0 +1,16 @@
+firmware/
+.pc/
+test/
+action_build/
+*.swp
+.vscode/settings.json
+.clineignore
+.env
+.taskmaster/
+.sisyphus/
+# Local OpenWrt build outputs and caches
+imm-nss/build_dir/
+imm-nss/staging_dir/
+imm-nss/bin/
+imm-nss/dl/
+imm-nss/tmp/

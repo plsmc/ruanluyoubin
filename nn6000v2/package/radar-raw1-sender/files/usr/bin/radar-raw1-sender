@@ -1,0 +1,6 @@
+#!/bin/sh
+# Placeholder for the optional Radar RAW1 sender.
+# Replace this file with the real ARM64 binary, then run:
+#   /etc/init.d/radar-raw1-sender restart
+logger -t radar-raw1-sender "placeholder: install the real radar-raw1-sender binary to enable capture"
+exit 0

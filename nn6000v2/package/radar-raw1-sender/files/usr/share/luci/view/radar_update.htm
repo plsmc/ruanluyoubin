@@ -1,0 +1,15 @@
+<%+header%>
+<h2><%:Radar 程序更新%></h2>
+<form method="post">
+  <label><%:更新地址（目录，需包含 latest.json）%></label>
+  <input type="text" name="update_url" value="<%=luci.util.pcdata(update_url or '')%>" style="width: min(600px, 100%);" placeholder="https://example.com/radar" />
+  <input class="cbi-button cbi-button-save" type="submit" name="save" value="<%:保存地址%>" />
+</form>
+<p><%:从已保存的地址检查并更新 radar-raw1-sender。%></p>
+<form method="post">
+  <input class="cbi-button cbi-button-apply" type="submit" name="update" value="<%:立即更新%>" />
+</form>
+<% if result then %>
+<pre style="margin-top:1em;white-space:pre-wrap"><%=luci.util.pcdata(result)%></pre>
+<% end %>
+<%+footer%>

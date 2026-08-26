@@ -1,0 +1,7 @@
+config radar-raw1-sender 'main'
+	option enabled '1'
+	option interface 'br-lan'
+	option server ''
+	option client_ip ''
+	option state_listen ':9011'
+	option update_url ''

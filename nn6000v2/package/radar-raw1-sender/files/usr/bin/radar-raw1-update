@@ -1,0 +1,49 @@
+#!/bin/sh
+set -eu
+
+BASE_URL="${RADAR_UPDATE_URL:-$(uci -q get radar-raw1-sender.main.update_url || true)}"
+[ -n "$BASE_URL" ] || { echo "update URL is not configured"; exit 1; }
+BASE_URL="${BASE_URL%/}"
+case "$BASE_URL" in
+	http://*|https://*) ;;
+	*) echo "update URL must use http:// or https://"; exit 1 ;;
+esac
+MANIFEST_URL="$BASE_URL/latest.json"
+TMP_DIR="/tmp/radar-update"
+BIN="/usr/bin/radar-raw1-sender"
+LOCK="/var/run/radar-raw1-update.lock"
+
+mkdir "$LOCK" 2>/dev/null || { echo "update already running"; exit 1; }
+trap 'rm -rf "$TMP_DIR" "$LOCK"' EXIT
+mkdir -p "$TMP_DIR"
+
+fetch() {
+	command -v wget >/dev/null 2>&1 || { echo "wget is required"; exit 1; }
+	wget -q -O "$2" "$1"
+}
+
+fetch "$MANIFEST_URL" "$TMP_DIR/latest.json"
+version=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$TMP_DIR/latest.json" | head -n 1)
+url=$(sed -n 's/.*"url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$TMP_DIR/latest.json" | head -n 1)
+sha=$(sed -n 's/.*"sha256"[[:space:]]*:[[:space:]]*"\([0-9a-fA-F]*\)".*/\1/p' "$TMP_DIR/latest.json" | head -n 1)
+[ -n "$version" ] && [ -n "$url" ] && [ -n "$sha" ] || { echo "invalid update manifest"; exit 1; }
+
+case "$url" in
+	http://*|https://*) bin_url="$url" ;;
+	*) bin_url="$BASE_URL/$url" ;;
+esac
+fetch "$bin_url" "$TMP_DIR/radar-raw1-sender.new"
+printf '%s  %s\n' "$sha" "$TMP_DIR/radar-raw1-sender.new" | sha256sum -c - >/dev/null
+chmod 0755 "$TMP_DIR/radar-raw1-sender.new"
+
+current=$(cat /etc/radar-raw1-sender.version 2>/dev/null || true)
+if [ "$current" = "$version" ]; then
+	echo "already up to date: $version"
+	exit 0
+fi
+
+cp -f "$BIN" "$BIN.bak" 2>/dev/null || true
+mv -f "$TMP_DIR/radar-raw1-sender.new" "$BIN"
+printf '%s\n' "$version" > /etc/radar-raw1-sender.version
+/etc/init.d/radar-raw1-sender restart >/dev/null 2>&1 || true
+echo "updated to $version"
