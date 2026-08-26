@@ -18,6 +18,8 @@ on:
 
 jobs:
   build:
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     defaults:
@@ -67,3 +69,14 @@ jobs:
           path: artifacts
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Publish GitHub Release
+        if: success() && inputs.build_mode == 'release' && hashFiles('artifacts/**') != ''
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: nn6000v2-${{ github.run_number }}
+          name: "NN6000V2 firmware #${{ github.run_number }}"
+          body: |
+            Automated firmware build from workflow run ${{ github.run_number }}.
+          files: artifacts/*
+          make_latest: true
