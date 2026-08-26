@@ -1,0 +1,18 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+start() {
+	local device=/dev/mmcblk0p27
+	local target=/mnt/data
+	local attempts=0
+
+	while [ ! -b "$device" ] && [ "$attempts" -lt 10 ]; do
+		sleep 1
+		attempts=$((attempts + 1))
+	done
+
+	[ -b "$device" ] || return 1
+	mkdir -p "$target"
+	grep -qs " $target " /proc/mounts || mount -t f2fs -o noatime,lazytime "$device" "$target"
+}
