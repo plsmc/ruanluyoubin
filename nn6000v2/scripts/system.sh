@@ -25,8 +25,9 @@ fix_default_set() {
     install -Dm544 "$BASE_PATH/patches/992_network_config.sh" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/992_network_config.sh"
     install -Dm544 "$BASE_PATH/patches/993_expand_data_partition.sh" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/993_expand_data_partition.sh"
     install -Dm544 "$BASE_PATH/patches/994_set_opkg_repos" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/994_set_opkg_repos"
-	install -Dm544 "$BASE_PATH/patches/995_disable_nss_offload" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/995_disable_nss_offload"
-	install -Dm755 "$BASE_PATH/patches/mount-data" "$BUILD_DIR/package/base-files/files/etc/init.d/mount-data"
+    install -Dm544 "$BASE_PATH/patches/996_disable_ipv6_nss_services" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/996_disable_ipv6_nss_services"
+    install -Dm544 "$BASE_PATH/patches/995_disable_nss_offload" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/995_disable_nss_offload"
+    install -Dm755 "$BASE_PATH/patches/mount-data" "$BUILD_DIR/package/base-files/files/etc/init.d/mount-data"
     
     if [ -f "$BUILD_DIR/package/emortal/autocore/files/tempinfo" ]; then
         if [ -f "$BASE_PATH/patches/tempinfo" ]; then
@@ -102,33 +103,6 @@ change_cpuusage() {
     fi
 }
 
-set_custom_task() {
-    local sh_dir="$BUILD_DIR/package/base-files/files/etc/init.d"
-    cat <<'EOF' >"$sh_dir/custom_task"
-#!/bin/sh /etc/rc.common
-START=99
-
-boot() {
-    sed -i '/drop_caches/d' /etc/crontabs/root
-    echo "15 3 * * * sync && echo 3 > /proc/sys/vm/drop_caches" >>/etc/crontabs/root
-
-    sed -i '/wireguard_watchdog/d' /etc/crontabs/root
-
-    local wg_ifname=$(wg show | awk '/interface/ {print $2}')
-
-    if [ -n "$wg_ifname" ]; then
-        echo "*/15 * * * * /usr/bin/wireguard_watchdog" >>/etc/crontabs/root
-        uci set system.@system[0].cronloglevel='9'
-        uci commit system
-        /etc/init.d/cron restart
-    fi
-
-    crontab /etc/crontabs/root
-}
-EOF
-    chmod +x "$sh_dir/custom_task"
-}
-
 apply_passwall_tweaks() {
     local chnlist_path="$BUILD_DIR/feeds/passwall/luci-app-passwall/root/usr/share/passwall/rules/chnlist"
     if [ -f "$chnlist_path" ]; then
@@ -198,8 +172,14 @@ update_script_priority() {
 
     local pbuf_path="$BUILD_DIR/package/kernel/mac80211/files/qca-nss-pbuf.init"
     if [ -d "${pbuf_path%/*}" ] && [ -f "$pbuf_path" ]; then
-        sed -i 's/START=.*/START=89/g' "$pbuf_path"
+        rm -f "$pbuf_path"
     fi
+
+    # Keep qca-nss-drv/dp for ath11k WiFi, but remove forwarding service entrypoints.
+    find "$BUILD_DIR" -type f \( \
+        -name 'qca-nss-ecm.init' -o -name 'qca-nss-netlink.init' -o \
+        -name 'nss_freq.init' \
+    \) -delete 2>/dev/null || true
 }
 
 fix_rust_compile_error() {

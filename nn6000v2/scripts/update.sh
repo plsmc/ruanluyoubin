@@ -50,7 +50,6 @@ main() {
     update_affinity_script
     update_dnsmasq_conf
     change_cpuusage
-    set_custom_task
     update_nss_pbuf_performance
     update_nss_diag
     fix_compile_coremark

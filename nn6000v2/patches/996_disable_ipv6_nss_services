@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# Disable IPv6 to avoid WAN6/odhcpd solicitation errors.
+uci -q set network.wan6.disabled='1'
+uci -q set dhcp.wan6.ignore='1'
+uci -q commit network
+uci -q commit dhcp
+
+for key in all default; do
+	[ -w "/proc/sys/net/ipv6/conf/$key/disable_ipv6" ] && echo 1 > "/proc/sys/net/ipv6/conf/$key/disable_ipv6"
+done
+for iface in /proc/sys/net/ipv6/conf/*/disable_ipv6; do
+	[ -w "$iface" ] && echo 1 > "$iface"
+done
+
+# Disable NSS forwarding helpers; qca-nss-drv remains for ath11k WiFi.
+for service in qca-nss-ecm qca-nss-netlink qca-nss-pbuf nss_freq; do
+	[ -x "/etc/init.d/$service" ] || continue
+	/etc/init.d/$service stop >/dev/null 2>&1 || true
+	/etc/init.d/$service disable >/dev/null 2>&1 || true
+done
+
+exit 0
