@@ -172,14 +172,8 @@ update_script_priority() {
 
     local pbuf_path="$BUILD_DIR/package/kernel/mac80211/files/qca-nss-pbuf.init"
     if [ -d "${pbuf_path%/*}" ] && [ -f "$pbuf_path" ]; then
-        rm -f "$pbuf_path"
+        sed -i 's/START=.*/START=89/g' "$pbuf_path"
     fi
-
-    # Keep qca-nss-drv/dp for ath11k WiFi, but remove forwarding service entrypoints.
-    find "$BUILD_DIR" -type f \( \
-        -name 'qca-nss-ecm.init' -o -name 'qca-nss-netlink.init' -o \
-        -name 'nss_freq.init' \
-    \) -delete 2>/dev/null || true
 }
 
 fix_rust_compile_error() {
